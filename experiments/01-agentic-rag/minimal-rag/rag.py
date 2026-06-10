@@ -4,34 +4,35 @@ from minsearch import Index
 from openai import OpenAI
 
 
+COURSES_URL = "https://datatalks.club/faq/json/courses.json"
+URL_PREFIX = "https://datatalks.club/faq"
+
 load_dotenv()
 
 client = OpenAI()
 
 
 def load_documents():
-    docs_url = "https://github.com/alexeygrigorev/llm-rag-workshop/raw/main/notebooks/documents.json"
-
-    response = requests.get(docs_url)
+    response = requests.get(COURSES_URL)
     response.raise_for_status()
 
-    raw_documents = response.json()
-
+    courses = response.json()
     documents = []
 
-    for course in raw_documents:
-        course_name = course["course"]
+    for course in courses:
+        course_url = f"{URL_PREFIX}{course['path']}"
+        course_response = requests.get(course_url)
+        course_response.raise_for_status()
 
-        for doc in course["documents"]:
-            doc["course"] = course_name
-            documents.append(doc)
+        course_documents = course_response.json()
+        documents.extend(course_documents)
 
     return documents
 
 
 def build_index(documents):
     index = Index(
-        text_fields=["question", "text", "section"],
+        text_fields=["question", "section", "answer"],
         keyword_fields=["course"],
     )
 
@@ -55,7 +56,7 @@ def build_prompt(query, search_results):
         context += f"""
 section: {doc["section"]}
 question: {doc["question"]}
-answer: {doc["text"]}
+answer: {doc["answer"]}
 """.strip()
         context += "\n\n"
 
@@ -97,11 +98,3 @@ def rag(query, course):
     answer = llm(prompt)
 
     return answer
-
-
-if __name__ == "__main__":
-    question = "When does the course start?"
-    course_name = "data-engineering-zoomcamp"
-
-    answer = rag(question, course_name)
-    print(answer)

@@ -2,8 +2,8 @@ from rag import rag
 
 
 if __name__ == "__main__":
-    question = "When does the course start?"
-    course_name = "data-engineering-zoomcamp"
+    question = "Can I still join the course?"
+    course_name = "llm-zoomcamp"
 
     answer = rag(question, course_name)
     print(answer)
